@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Medical Information Chat (Local Qwen)</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 10px;
+    }
+    h1 {
+      margin-bottom: 0;
+    }
+    #disclaimer {
+      font-size: 0.9rem;
+      color: #b02a37;
+      margin: 4px 0 12px 0;
+    }
+    #chat {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      height: 480px;
+      overflow-y: auto;
+      background: #fafafa;
+      white-space: pre-wrap;
+    }
+    .msg {
+      margin: 6px 0;
+      padding: 6px 8px;
+      border-radius: 8px;
+      max-width: 80%;
+    }
+    .msg.user {
+      background: #e3f2fd;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .msg.assistant {
+      background: #ffffff;
+      border: 1px solid #eee;
+      align-self: flex-start;
+      margin-right: auto;
+    }
+    #chat-inner {
+      display: flex;
+      flex-direction: column;
+    }
+    #input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    #user-input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #1976d2;
+      color: white;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    #status {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Medical Information Assistant</h1>
+  <div id="disclaimer">
+    ⚠️ This tool is for general medical information only and does <b>not</b> replace a doctor.
+    Never ignore professional medical advice because of something you read here.
+  </div>
+
+  <div id="chat">
+    <div id="chat-inner"></div>
+  </div>
+
+  <div id="input-row">
+    <input
+      id="user-input"
+      type="text"
+      placeholder="Describe your symptoms or ask about a medical topic..."
+    />
+    <button id="send-btn">Send</button>
+  </div>
+  <div id="status"></div>
+
+  <script>
+    const chatInner = document.getElementById("chat-inner");
+    const chatBox = document.getElementById("chat");
+    const userInput = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+    const statusSpan = document.getElementById("status");
+
+    // Only user/assistant messages; system prompt is on the backend.
+    const messages = [];
+
+    function appendMessage(role, text) {
+      const div = document.createElement("div");
+      div.classList.add("msg");
+      div.classList.add(role === "user" ? "user" : "assistant");
+      div.textContent = text;
+      chatInner.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      messages.push({ role: "user", content: text });
+      appendMessage("user", text);
+      userInput.value = "";
+      userInput.focus();
+      sendBtn.disabled = true;
+      statusSpan.textContent = "Thinking...";
+
+      try {
+        const res = await fetch("https://blue-albums-dropped-api.trycloudflare.com/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: messages,
+            temperature: 0.2,
+            top_p: 0.9,
+            max_tokens: 512
+          })
+        });
+
+        if (!res.ok) {
+          appendMessage("assistant", "Error: " + res.statusText);
+          statusSpan.textContent = "";
+          sendBtn.disabled = false;
+          return;
+        }
+
+        const data = await res.json();
+        const reply = data.reply;
+        messages.push({ role: "assistant", content: reply });
+        appendMessage("assistant", reply);
+        statusSpan.textContent = "";
+      } catch (err) {
+        appendMessage("assistant", "Request failed: " + err);
+        statusSpan.textContent = "";
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+
+    // Optional greeting
+    appendMessage(
+      "assistant",
+      "Hi, I can help explain medical topics and general health information.\n" +
+      "Please describe your situation, but remember I cannot give diagnoses or emergency advice."
+    );
+  </script>
+</body>
+</html>
