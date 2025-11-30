@@ -1,0 +1,1 @@
+this project is to test out vLLM and uses cloudfare to redirect to my localhost. Also if you want to try this out yourself download the qwen-2.5-instruct model and try it out yourself or even better try out some different models also i had to do a bit of quantizations to make sure it works locally(i dont have the specs to host it in its fullest)
