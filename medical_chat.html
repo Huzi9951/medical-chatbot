@@ -109,6 +109,7 @@
     const statusSpan = document.getElementById("status");
 
     // Only user/assistant messages; system prompt is on the backend.
+    const API_BASE = "http://127.0.0.1:8080";
     const messages = [];
 
     function appendMessage(role, text) {
@@ -132,7 +133,7 @@
       statusSpan.textContent = "Thinking...";
 
       try {
-        const res = await fetch("https://blue-albums-dropped-api.trycloudflare.com/chat", {
+        const res = await fetch(API_BASE + "/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
